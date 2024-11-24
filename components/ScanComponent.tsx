@@ -7,7 +7,7 @@ import { useApiKeyStore } from '@/lib/hooks/useApiKey';
 import { API_BASE } from '@/lib/api';
 import { throttle } from 'lodash';
 
-import { HolderResult, ScanResult, ScanData } from '@/types/scan';
+import { HolderResult, ScanResult} from '@/types/scan';
 
 
 interface ScanEvent {

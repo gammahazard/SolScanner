@@ -24,7 +24,10 @@ export function TokenGrid({
   onUpdateLimit,
   onRemoveToken,
 }: TokenGridProps) {
-  const allTokens = [...defaultTokens, ...customTokens];
+  const allTokens = [...defaultTokens, ...customTokens].map((token) => ({
+    ...token,
+    isSelected: false, // No tokens are selected initially
+  }));
   const [notification, setNotification] = useState(false);
 
   const handleToggleToken = (symbol: string) => {

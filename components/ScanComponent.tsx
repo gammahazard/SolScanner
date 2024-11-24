@@ -1,8 +1,8 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useCallback } from 'react';
 import StopButton from './StopButton';
-import { ProgressBar } from './ProgressBar'; // Import the ProgressBar component
+import { ProgressBar } from './ProgressBar';
 import { useApiKeyStore } from '@/lib/hooks/useApiKey';
 import { API_BASE } from '@/lib/api';
 import { throttle } from 'lodash';
@@ -11,7 +11,7 @@ import { HolderResult, ScanResult } from '@/types/scan';
 
 interface ScanEvent {
   sessionId?: string;
-  type: 'status' | 'progress' | 'tokenComplete' | 'complete' | 'error';
+  type: 'status' | 'progress' | 'tokenComplete' | 'complete' | 'error' | 'stopped';
   message?: string;
   processedCount?: number;
   totalAccounts?: number;
@@ -50,17 +50,31 @@ export const ScanComponent: React.FC<ScanComponentProps> = ({
   });
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const { isValid, apiKey } = useApiKeyStore();
+  const readerRef = useRef<ReadableStreamDefaultReader | null>(null);
 
   const progressRef = useRef(progress);
 
-  // Throttle progress updates for smoother UI
   const updateProgress = throttle((newProgress: Partial<typeof progress>) => {
     setProgress((prev) => ({
       ...prev,
       ...newProgress,
     }));
     progressRef.current = { ...progressRef.current, ...newProgress };
-  }, 100); // Update at most every 100ms
+  }, 100);
+
+  const cleanup = useCallback(async () => {
+    if (readerRef.current) {
+      try {
+        await readerRef.current.cancel();
+      } catch (e) {
+        console.error('Error canceling reader:', e);
+      }
+      readerRef.current = null;
+    }
+    setCurrentSessionId(null);
+    setIsScanning(false);
+    setIsStopping(false);
+  }, []);
 
   const handleStop = async () => {
     if (!currentSessionId || isStopping) return;
@@ -82,6 +96,7 @@ export const ScanComponent: React.FC<ScanComponentProps> = ({
         throw new Error('Failed to stop scan');
       }
 
+      await cleanup();
       onStatusChange('Scan stopped by user');
       setErrorMessage(null);
       setProgress({ current: 0, total: 0, currentToken: '', status: '' });
@@ -91,16 +106,14 @@ export const ScanComponent: React.FC<ScanComponentProps> = ({
       console.error('Error stopping scan:', errorMessage);
       onStatusChange('Error stopping scan');
       onError?.(errorMessage);
-    } finally {
-      setIsStopping(false);
-      setIsScanning(false);
-      setCurrentSessionId(null);
     }
   };
 
   const handleScan = async () => {
-    if (!isValid) {
-      const message = 'Please enter a valid API key to start scanning';
+    if (!isValid || isScanning) {
+      const message = !isValid 
+        ? 'Please enter a valid API key to start scanning'
+        : 'A scan is already in progress';
       setErrorMessage(message);
       onStatusChange(message);
       onError?.(message);
@@ -114,8 +127,6 @@ export const ScanComponent: React.FC<ScanComponentProps> = ({
       onError?.(message);
       return;
     }
-
-    if (isScanning) return;
 
     if (selectedTokens.length === 0) {
       const message = 'Please select at least one token to scan';
@@ -151,9 +162,10 @@ export const ScanComponent: React.FC<ScanComponentProps> = ({
 
       const reader = response.body?.getReader();
       if (!reader) throw new Error('Stream not available');
-
-      const decoder = new TextDecoder();
+      
+      readerRef.current = reader;
       let buffer = '';
+      const decoder = new TextDecoder();
 
       while (true) {
         const { done, value } = await reader.read();
@@ -196,12 +208,22 @@ export const ScanComponent: React.FC<ScanComponentProps> = ({
                   });
                   break;
 
+                case 'stopped':
+                  await cleanup();
+                  setProgress({
+                    current: 0,
+                    total: 0,
+                    currentToken: '',
+                    status: 'Scan stopped by user',
+                  });
+                  onStatusChange('Scan stopped by user');
+                  return;
+
                 case 'complete':
                   if (event.results && event.scanResults) {
                     onScanComplete(event.results, event.scanResults);
                   }
-                  setIsScanning(false);
-                  setCurrentSessionId(null);
+                  await cleanup();
                   setProgress({
                     current: 0,
                     total: 0,
@@ -220,6 +242,7 @@ export const ScanComponent: React.FC<ScanComponentProps> = ({
               console.error('Error processing event:', errorMessage);
               onError?.(errorMessage);
               setErrorMessage(errorMessage);
+              await cleanup();
             }
           }
         }
@@ -237,9 +260,7 @@ export const ScanComponent: React.FC<ScanComponentProps> = ({
         currentToken: '',
         status: '',
       });
-    } finally {
-      setIsScanning(false);
-      setCurrentSessionId(null);
+      await cleanup();
     }
   };
 
@@ -263,13 +284,11 @@ export const ScanComponent: React.FC<ScanComponentProps> = ({
       </div>
 
       {isScanning && (
-        <>
-          <ProgressBar
-            current={progress.current}
-            total={progress.total}
-            currentToken={progress.currentToken}
-          />
-        </>
+        <ProgressBar
+          current={progress.current}
+          total={progress.total}
+          currentToken={progress.currentToken}
+        />
       )}
     </div>
   );

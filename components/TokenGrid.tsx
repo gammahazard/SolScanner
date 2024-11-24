@@ -1,5 +1,6 @@
 import React from 'react';
-import { Check, X, ChevronUp, ChevronDown, Trash2 } from 'lucide-react';
+import { Check, X, ChevronUp, ChevronDown, Trash2, AlertTriangle } from 'lucide-react';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 interface Token {
   address?: string;
@@ -25,6 +26,7 @@ export function TokenGrid({
   onRemoveToken,
 }: TokenGridProps) {
   const allTokens = [...defaultTokens, ...customTokens];
+  const selectedTokenCount = allTokens.filter(token => token.isSelected).length;
 
   const handleLimitChange = (symbol: string, newLimit: number) => {
     const validLimit = Math.max(1, Math.min(1000, newLimit));
@@ -38,14 +40,31 @@ export function TokenGrid({
         <h3 className="text-[#9945FF] text-xl">Select Tokens to Scan:</h3>
       </div>
 
-      {/* Disclaimer */}
-      <div className="text-sm text-[#9ca3af] mb-4">
-        <strong className="text-yellow-500">Note:</strong> Tokens with over{' '}
-        <strong>300,000 holders</strong> may not complete. Please{' '}
-        <a href="#" className="text-[#9945FF] hover:underline">
-          upgrade to a paid plan
-        </a>{' '}
-        to scan high-volume tokens.
+      {/* Warning Messages */}
+      <div className="space-y-4 mb-4">
+        {/* Existing Disclaimer */}
+        <div className="text-sm text-[#9ca3af]">
+          <strong className="text-yellow-500">Note:</strong> Tokens with over{' '}
+          <strong>300,000 holders</strong> may not complete. Please{' '}
+          <a href="#" className="text-[#9945FF] hover:underline">
+            upgrade to a paid plan
+          </a>{' '}
+          to scan high-volume tokens.
+        </div>
+
+        {/* New Token Limit Warning */}
+        {selectedTokenCount > 3 && (
+          <Alert variant="destructive" className="bg-red-900/20 border-red-900">
+            <AlertTriangle className="h-4 w-4" />
+            <AlertDescription className="text-red-400">
+              Please select 3 or fewer tokens, or{' '}
+              <a href="#" className="text-[#9945FF] hover:underline">
+                upgrade to a paid plan
+              </a>{' '}
+              for unlimited token scanning.
+            </AlertDescription>
+          </Alert>
+        )}
       </div>
 
       {/* Token Grid */}

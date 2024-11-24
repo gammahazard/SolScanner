@@ -26,7 +26,7 @@ const ComingSoon = ({ isVisible, message, onClose }: ComingSoonProps) => {
       <div className="bg-[#9945FF] text-white px-6 py-3 rounded-lg shadow-lg flex items-center gap-3">
         <div className="flex-1">
           <p className="font-medium">{message}</p>
-          <p className="text-sm opacity-80">Coming Soon!</p>
+          <p className="text-sm opacity-80">Upgrade to a premium plan for live tracking!</p>
         </div>
         <button
           onClick={onClose}

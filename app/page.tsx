@@ -39,11 +39,10 @@ interface HolderResult {
 }
 
 interface ScanResult {
-  sessionId: string;
-  processedCount: number;
-  totalAccounts: number;
   symbol: string;
-  currentToken: string;
+  holdersFound: number;
+  totalHolders?: number;
+  processedAccounts?: number;
 }
 
 const DEFAULT_TOKENS: Token[] = Object.entries(COMMON_TOKENS).map(([symbol, address]) => ({
@@ -183,18 +182,18 @@ export default function Home() {
     return num.toLocaleString();
   };
 
-  const handleScanComplete = (results: ScanResult[], scanResults: ScanResult[]) => {
+  const handleScanComplete = (scanData: any[], scanResults: any[]) => {
     console.log('Scan complete, received results:', {
-      resultsLength: results?.length,
+      resultsLength: scanData?.length,
       scanResultsLength: scanResults?.length,
-      sampleResult: results?.[0],
+      sampleResult: scanData?.[0],
       sampleScanResult: scanResults?.[0]
     });
       
-    if (Array.isArray(results)) {
-      console.log('Setting results:', results);
-      // Convert scan results to holder results format
-      const holderResults: HolderResult[] = results.map(result => ({
+    if (Array.isArray(scanData)) {
+      console.log('Setting results:', scanData);
+      // Convert scan data to holder results format
+      const holderResults: HolderResult[] = scanData.map(result => ({
         address: result.currentToken,
         tokenCount: result.totalAccounts,
         tokens: [result.symbol],
@@ -209,13 +208,13 @@ export default function Home() {
       }));
       setResults(holderResults);
     } else {
-      console.error('Invalid results format:', results);
+      console.error('Invalid results format:', scanData);
       setResults([]);
     }
   
     if (Array.isArray(scanResults)) {
       // Convert scan results to the format your UI expects
-      const formattedScanResults = scanResults.map(result => ({
+      const formattedScanResults: ScanResult[] = scanResults.map(result => ({
         symbol: result.symbol,
         holdersFound: result.processedCount,
         totalHolders: result.totalAccounts,
@@ -227,6 +226,11 @@ export default function Home() {
       console.error('Invalid scan results format:', scanResults);
       setScanResults([]);
     }
+  
+    setIsLoading(false);
+    setError(null);
+    setStatus('Scan completed successfully');
+  };
   
     setIsLoading(false);
     setError(null);

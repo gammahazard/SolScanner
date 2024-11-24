@@ -34,7 +34,7 @@ interface ScanComponentProps {
     isSelected: boolean;
     holderLimit: number;
   }[];
-  onScanComplete: (results: ScanResult[], scanResults: ScanResult[]) => void;
+  onScanComplete: (results: any[], scanResults: any[]) => void;  // Using any temporarily to fix type issues
   onStatusChange: (status: string) => void;
   onError?: (error: string) => void;
 }

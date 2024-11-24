@@ -7,8 +7,7 @@ import { useApiKeyStore } from '@/lib/hooks/useApiKey';
 import { API_BASE } from '@/lib/api';
 import { throttle } from 'lodash';
 
-import { HolderResult, ScanResult} from '@/types/scan';
-
+import { HolderResult, ScanResult } from '@/types/scan';
 
 interface ScanEvent {
   sessionId?: string;
@@ -33,6 +32,7 @@ interface ScanComponentProps {
   onStatusChange: (status: string) => void;
   onError?: (error: string) => void;
 }
+
 export const ScanComponent: React.FC<ScanComponentProps> = ({
   selectedTokens,
   onScanComplete,
@@ -101,6 +101,14 @@ export const ScanComponent: React.FC<ScanComponentProps> = ({
   const handleScan = async () => {
     if (!isValid) {
       const message = 'Please enter a valid API key to start scanning';
+      setErrorMessage(message);
+      onStatusChange(message);
+      onError?.(message);
+      return;
+    }
+
+    if (selectedTokens.length > 3) {
+      const message = 'You can select a maximum of 3 tokens for scanning. Please deselect some tokens.';
       setErrorMessage(message);
       onStatusChange(message);
       onError?.(message);
@@ -246,7 +254,7 @@ export const ScanComponent: React.FC<ScanComponentProps> = ({
       <div className="flex gap-4">
         <button
           onClick={handleScan}
-          disabled={isScanning || !isValid}
+          disabled={isScanning || !isValid || selectedTokens.length > 3}
           className="px-6 py-3 bg-[#9945FF] text-white rounded-lg hover:bg-[#7d37d6] disabled:opacity-60 disabled:cursor-not-allowed"
         >
           {isScanning ? 'Scanning...' : 'Scan Selected Tokens'}

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { Check, X, ChevronUp, ChevronDown, Trash2 } from 'lucide-react';
 
 interface Token {
@@ -24,35 +24,11 @@ export function TokenGrid({
   onUpdateLimit,
   onRemoveToken,
 }: TokenGridProps) {
-  const allTokens = [...defaultTokens, ...customTokens].map((token) => ({
-    ...token,
-    isSelected: false, // No tokens are selected initially
-  }));
-  const [notification, setNotification] = useState(false);
-
-  const handleToggleToken = (symbol: string) => {
-    const selectedCount = allTokens.filter((token) => token.isSelected).length;
-    const token = allTokens.find((t) => t.symbol === symbol);
-
-    if (token?.isSelected) {
-      // Allow deselection
-      onToggleToken(symbol);
-    } else if (selectedCount >= 3) {
-      // Show notification if trying to select more than 3 tokens
-      setNotification(true);
-      setTimeout(() => setNotification(false), 1500); // Hide after 1.5 seconds
-    } else {
-      // Otherwise, toggle the token
-      onToggleToken(symbol);
-    }
-  };
+  const allTokens = [...defaultTokens, ...customTokens];
 
   const handleLimitChange = (symbol: string, newLimit: number) => {
-    // Ensure limit is between 1 and 1000
     const validLimit = Math.max(1, Math.min(1000, newLimit));
-    if (!isNaN(validLimit)) {
-      onUpdateLimit(symbol, validLimit);
-    }
+    onUpdateLimit(symbol, validLimit);
   };
 
   return (
@@ -60,22 +36,13 @@ export function TokenGrid({
       {/* Header Section */}
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-[#9945FF] text-xl">Select Tokens to Scan:</h3>
-        {notification && (
-          <div
-            className="inline-block bg-[#ff4444] text-white px-3 py-1 rounded-lg font-medium text-sm animate-fade-in-out"
-          >
-            Upgrade to a paid plan to select more than 3 tokens.
-          </div>
-        )}
       </div>
 
       {/* Disclaimer */}
       <div className="text-sm text-[#9ca3af] mb-4">
-        <strong className="text-yellow-500">Note:</strong> Tokens with over <strong>300,000 holders</strong> may not complete. Please{' '}
-        <a
-          href="#"
-          className="text-[#9945FF] hover:underline"
-        >
+        <strong className="text-yellow-500">Note:</strong> Tokens with over{' '}
+        <strong>300,000 holders</strong> may not complete. Please{' '}
+        <a href="#" className="text-[#9945FF] hover:underline">
           upgrade to a paid plan
         </a>{' '}
         to scan high-volume tokens.
@@ -93,7 +60,7 @@ export function TokenGrid({
             {/* Token Header */}
             <div className="flex items-center justify-between bg-[#2a2b3d] p-2">
               <button
-                onClick={() => handleToggleToken(token.symbol)}
+                onClick={() => onToggleToken(token.symbol)}
                 className={`flex-1 p-2 flex items-center justify-between rounded-lg ${
                   token.isSelected
                     ? 'bg-[#1a472e] text-[#10b981]'
@@ -129,7 +96,7 @@ export function TokenGrid({
                       type="number"
                       value={token.holderLimit}
                       onChange={(e) =>
-                        handleLimitChange(token.symbol, parseInt(e.target.value))
+                        handleLimitChange(token.symbol, parseInt(e.target.value, 10))
                       }
                       min="1"
                       max="1000"

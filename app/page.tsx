@@ -45,14 +45,6 @@ interface ScanResult {
   processedAccounts?: number;
 }
 
-interface ComponentScanResult {
-  sessionId: string;
-  processedCount: number;
-  totalAccounts: number;
-  symbol: string;
-  currentToken: string;
-}
-
 const DEFAULT_TOKENS: Token[] = Object.entries(COMMON_TOKENS).map(([symbol, address]) => ({
   symbol,
   address,
@@ -119,7 +111,6 @@ export default function Home() {
     setCustomTokens(updatedTokens);
     localStorage.setItem('customTokens', JSON.stringify(updatedTokens));
   };
-
   const handleUpdateLimit = (symbol: string, newLimit: number) => {
     // Update default tokens
     const defaultIndex = defaultTokens.findIndex(t => t.symbol === symbol);
@@ -141,9 +132,7 @@ export default function Home() {
       }), {});
       localStorage.setItem('defaultTokenStates', JSON.stringify(states));
       return;
-    }
-    
-    // Update custom tokens
+    } // Update custom tokens
     const customIndex = customTokens.findIndex(t => t.symbol === symbol);
     if (customIndex !== -1) {
       const updatedCustom = [...customTokens];
@@ -155,7 +144,6 @@ export default function Home() {
       localStorage.setItem('customTokens', JSON.stringify(updatedCustom));
     }
   };
-
   const handleToggleToken = (symbol: string) => {
     const defaultIndex = defaultTokens.findIndex((t) => t.symbol === symbol);
     if (defaultIndex !== -1) {
@@ -194,62 +182,40 @@ export default function Home() {
     return num.toLocaleString();
   };
 
-  const handleScanComplete = (scanData: any[], scanResults: any[]) => {
-    console.log('Scan complete, received results:', {
-      resultsLength: scanData?.length,
-      scanResultsLength: scanResults?.length,
-      sampleResult: scanData?.[0],
-      sampleScanResult: scanResults?.[0]
-    });
+// In Home component, update handleScanComplete:
+const handleScanComplete = (newResults: HolderResult[], newScanResults: ScanResult[]) => {
+  console.log('Scan complete, received results:', {
+    resultsLength: newResults?.length,
+    scanResultsLength: newScanResults?.length,
+    sampleResult: newResults?.[0],
+    sampleScanResult: newScanResults?.[0]
+  });
       
-    if (Array.isArray(scanData)) {
-      console.log('Setting results:', scanData);
-      // Convert scan data to holder results format
-      const holderResults: HolderResult[] = scanData.map(result => ({
-        address: result.address || result.currentToken || '', // Fallback to empty string if undefined
-        tokenCount: result.totalAccounts || 0,  // Fallback to 0 if undefined
-        tokens: [result.symbol || ''],  // Fallback to empty string if undefined
-        holdings: {
-          [result.symbol || '']: {  // Fallback to empty string if undefined
-            percentage: result.percentage || "0",  // Fallback to "0" if undefined
-            amount: (result.amount || result.processedCount || 0).toString(),  // Fallback to 0 if undefined
-            decimals: result.decimals || 0,  // Fallback to 0 if undefined
-            rank: result.rank || 0  // Fallback to 0 if undefined
-          }
-        }
-      }));
-      setResults(holderResults);
-    } else {
-      console.error('Invalid results format:', scanData);
-      setResults([]);
-    }
-  
-    if (Array.isArray(scanResults)) {
-      // Convert scan results to the format your UI expects
-      const formattedScanResults: ScanResult[] = scanResults.map(result => ({
-        symbol: result.symbol || '',  // Fallback to empty string if undefined
-        holdersFound: result.processedCount || 0,  // Fallback to 0 if undefined
-        totalHolders: result.totalAccounts || 0,  // Fallback to 0 if undefined
-        processedAccounts: result.processedCount || 0  // Fallback to 0 if undefined
-      }));
-      console.log('Setting scan results:', formattedScanResults);
-      setScanResults(formattedScanResults);
-    } else {
-      console.error('Invalid scan results format:', scanResults);
-      setScanResults([]);
-    }
-  
-    setIsLoading(false);
-    setError(null);
-    setStatus('Scan completed successfully');
-  };
+  if (Array.isArray(newResults)) {
+    console.log('Setting results:', newResults);
+    setResults(newResults);
+  } else {
+    console.error('Invalid results format:', newResults);
+    setResults([]);
+  }
 
+  if (Array.isArray(newScanResults)) {
+    console.log('Setting scan results:', newScanResults);
+    setScanResults(newScanResults);
+  } else {
+    console.error('Invalid scan results format:', newScanResults);
+    setScanResults([]);
+  }
+
+  setIsLoading(false);
+  setError(null);
+  setStatus('Scan completed successfully');
+};
   const handleRemoveToken = (symbol: string) => {
     const updatedTokens = customTokens.filter(token => token.symbol !== symbol);
     setCustomTokens(updatedTokens);
     localStorage.setItem('customTokens', JSON.stringify(updatedTokens));
   };
-
   const handleStatusChange = (newStatus: string) => {
     setStatus(newStatus);
     setIsLoading(newStatus.includes('Scanning') || newStatus.includes('Processing'));
@@ -294,7 +260,7 @@ export default function Home() {
 
         <TokenInput onAddToken={handleAddToken} />
 
-        <TokenGrid
+     <TokenGrid
           defaultTokens={defaultTokens}
           customTokens={customTokens}
           onToggleToken={handleToggleToken}
@@ -369,22 +335,22 @@ export default function Home() {
         {isLoading ? (
           <div className="bg-[#1e1f2e] rounded-xl p-6 mt-8">
             <div className="animate-pulse space-y-4">
-              <div className="h-4 bg-[#2a2b3d] rounded w-3/4" />
+              <div className="h-4 bg-[#2a2b3d] rounded w-3/4"></div>
               <div className="space-y-2">
-                <div className="h-4 bg-[#2a2b3d] rounded" />
-                <div className="h-4 bg-[#2a2b3d] rounded w-5/6" />
+                <div className="h-4 bg-[#2a2b3d] rounded"></div>
+                <div className="h-4 bg-[#2a2b3d] rounded w-5/6"></div>
               </div>
             </div>
           </div>
-        ) : results.length > 0 ? (
+        ) : results && results.length > 0 ? (
           <div className="mt-8">
             <ResultsTable results={results} />
           </div>
-        ) : status.includes('complete') ? (
+        ) : status.includes('complete') && (
           <div className="text-center p-6 bg-[#1e1f2e] rounded-xl mt-8">
             <p className="text-[#9ca3af]">No matching holders found</p>
           </div>
-        ) : null}
+        )}
       </div>
     </main>
   );

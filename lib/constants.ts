@@ -1,5 +1,4 @@
 export const COMMON_TOKENS = {
-  'BONK': 'DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263',
   'WIF': 'EKpQGSJtjMFqKZ9KQanSqYXRcF8fBopzLHYxdM65zcjm',
   'GOAT': 'CzLSujWBLFsSjncfkh59rUFqvafWcY5tzedWJSuypump',
   'FWOG': 'A8C3xuqscfmyLrte3VmTqrAq8kgMASius9AFNANwpump',

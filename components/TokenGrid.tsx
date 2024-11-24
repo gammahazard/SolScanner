@@ -54,6 +54,7 @@ export function TokenGrid({
 
   return (
     <div className="bg-[#1e1f2e] rounded-xl p-6 mb-8">
+      {/* Header Section */}
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-[#9945FF] text-xl">Select Tokens to Scan:</h3>
         {notification && (
@@ -65,26 +66,36 @@ export function TokenGrid({
         )}
       </div>
 
+      {/* Disclaimer */}
+      <div className="text-sm text-[#9ca3af] mb-4">
+        <strong className="text-yellow-500">Note:</strong> Tokens with over <strong>300,000 holders</strong> may not complete. Please{' '}
+        <a
+          href="#"
+          className="text-[#9945FF] hover:underline"
+        >
+          upgrade to a paid plan
+        </a>{' '}
+        to scan high-volume tokens.
+      </div>
+
+      {/* Token Grid */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
         {allTokens.map((token) => (
           <div
             key={token.symbol}
-            className={`
-              rounded-lg overflow-hidden border
-              ${token.isSelected ? 'border-[#10b981]' : 'border-[#ef4444]'}
-            `}
+            className={`rounded-lg overflow-hidden border ${
+              token.isSelected ? 'border-[#10b981]' : 'border-[#ef4444]'
+            }`}
           >
+            {/* Token Header */}
             <div className="flex items-center justify-between bg-[#2a2b3d] p-2">
               <button
                 onClick={() => handleToggleToken(token.symbol)}
-                className={`
-                  flex-1 p-2 flex items-center justify-between rounded-lg
-                  ${
-                    token.isSelected
-                      ? 'bg-[#1a472e] text-[#10b981]'
-                      : 'bg-[#2a2b3d] text-[#ef4444]'
-                  }
-                `}
+                className={`flex-1 p-2 flex items-center justify-between rounded-lg ${
+                  token.isSelected
+                    ? 'bg-[#1a472e] text-[#10b981]'
+                    : 'bg-[#2a2b3d] text-[#ef4444]'
+                }`}
               >
                 <span className="font-mono">{token.symbol}</span>
                 {token.isSelected ? (
@@ -105,6 +116,7 @@ export function TokenGrid({
               )}
             </div>
 
+            {/* Token Body */}
             <div className="bg-[#2a2b3d] p-3">
               <div className="flex items-center gap-2 justify-between">
                 <div className="flex items-center gap-2 flex-1">

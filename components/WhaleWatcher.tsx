@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import { Search, Bell } from 'lucide-react';
 import { useApiKeyStore } from '@/lib/hooks/useApiKey';
 import ComingSoon from './ComingSoon';
+import { API_BASE } from '@/lib/api';  
 
 interface TokenContent {
   symbol: string;
@@ -43,14 +44,14 @@ const WhaleWatcher = () => {
       setError('Please enter a valid API key first');
       return;
     }
-
+  
     setIsLoading(true);
     setError('');
     setAssets([]);
     setFilteredAssets([]);
-
+  
     try {
-      const response = await fetch('/api/whale/assets', {
+      const response = await fetch(`${API_BASE}/whale/assets`, {  // Use API_BASE
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',
@@ -58,12 +59,12 @@ const WhaleWatcher = () => {
         },
         body: JSON.stringify({ address }),
       });
-
+  
       if (response.status === 401 || response.status === 403) {
         setError('Invalid or expired API key');
         return;
       }
-
+  
       const data = await response.json();
       if (data.success) {
         setAssets(data.assets.items);
@@ -72,6 +73,7 @@ const WhaleWatcher = () => {
         setError(data.error || 'Failed to fetch wallet assets');
       }
     } catch (err) {
+      console.error('Error fetching wallet assets:', err);
       setError('Failed to fetch wallet data');
     } finally {
       setIsLoading(false);

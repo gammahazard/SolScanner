@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Check, X, ChevronUp, ChevronDown, Trash2, Lock } from 'lucide-react';
+
+import { Check, X, ChevronUp, ChevronDown, Trash2} from 'lucide-react';
 
 interface Token {
   address?: string;

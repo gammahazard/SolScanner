@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { validateApiKey } from '@/lib/api';
 import { useApiKeyStore } from '@/lib/hooks/useApiKey';
 import { Check, X } from 'lucide-react';
@@ -10,15 +10,7 @@ const ApiKeyInput = () => {
   const [isValid, setIsValid] = useState(false);
   const { setApiKey: setGlobalApiKey, setIsValid: setGlobalIsValid } = useApiKeyStore();
 
-  useEffect(() => {
-    const savedKey = localStorage.getItem('apiKey');
-    if (savedKey) {
-      setApiKey(savedKey);
-      checkApiKey(savedKey);
-    }
-  }, []);
-
-  const checkApiKey = async (key: string) => {
+  const checkApiKey = useCallback(async (key: string) => {
     setIsLoading(true);
     try {
       const isKeyValid = await validateApiKey(key);
@@ -35,7 +27,7 @@ const ApiKeyInput = () => {
         setGlobalApiKey(null);
         setGlobalIsValid(false);
       }
-    } catch (error) {
+    } catch {
       setIsValid(false);
       localStorage.removeItem('apiKey');
       setMessage('Error validating API key');
@@ -44,7 +36,15 @@ const ApiKeyInput = () => {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [setGlobalApiKey, setGlobalIsValid]);
+
+  useEffect(() => {
+    const savedKey = localStorage.getItem('apiKey');
+    if (savedKey) {
+      setApiKey(savedKey);
+      checkApiKey(savedKey);
+    }
+  }, [checkApiKey]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();

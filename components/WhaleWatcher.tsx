@@ -4,7 +4,7 @@ import { Search, Bell } from 'lucide-react';
 import { useApiKeyStore } from '@/lib/hooks/useApiKey';
 import ComingSoon from './ComingSoon';
 import { API_BASE } from '@/lib/api';  
-
+import Image from 'next/image';
 interface TokenContent {
   symbol: string;
   name: string;
@@ -82,7 +82,7 @@ const WhaleWatcher = () => {
 
   const handleSort = (option: string) => {
     setSortOption(option);
-    let sortedAssets = [...filteredAssets];
+    const sortedAssets = [...filteredAssets];  // 
 
     if (option === 'highest-value') {
       sortedAssets.sort((a, b) => b.priceInfo.totalValue - a.priceInfo.totalValue);
@@ -95,7 +95,12 @@ const WhaleWatcher = () => {
     }
 
     setFilteredAssets(sortedAssets);
-  };
+};
+
+
+const handleWatchClick = () => {  // 
+  setShowComingSoon(true);
+};
 
   const handleSearch = (query: string) => {
     setSearchQuery(query);
@@ -106,9 +111,7 @@ const WhaleWatcher = () => {
     setFilteredAssets(filtered);
   };
 
-  const handleWatchClick = (symbol: string) => {
-    setShowComingSoon(true);
-  };
+
 
   return (
     <div className="space-y-4">
@@ -200,12 +203,14 @@ const WhaleWatcher = () => {
 
             {/* Token Image */}
             {token.content.image && (
-              <img
-                src={token.content.image}
-                alt={`${token.content.symbol} Token`}
-                className="absolute top-3 right-3 w-12 h-12 rounded-full border border-white/20"
-              />
-            )}
+  <Image
+    src={token.content.image}
+    alt={`${token.content.symbol} Token`}
+    width={48}  // 12 * 4 (w-12)
+    height={48}
+    className="absolute top-3 right-3 rounded-full border border-white/20"
+  />
+)}
 
             {/* Token Details */}
             <div className="mt-8">

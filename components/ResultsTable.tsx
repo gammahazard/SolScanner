@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { EXCHANGE_WALLETS } from '../lib/constants';
+import { EXCHANGE_WALLETS, ExchangeWalletAddress } from '../lib/constants';
+
 
 interface HoldingData {
   percentage: string;
@@ -39,9 +40,11 @@ export function ResultsTable({ results }: ResultsTableProps) {
 
   // Helper to get the display name for a wallet
   const getWalletDisplayName = (address: string) => {
-    return EXCHANGE_WALLETS[address] || address;
+    if (address in EXCHANGE_WALLETS) {
+      return EXCHANGE_WALLETS[address as ExchangeWalletAddress];
+    }
+    return address;
   };
-
   if (!results?.length) {
     console.warn('ResultsTable: No results to display', results);
     return (

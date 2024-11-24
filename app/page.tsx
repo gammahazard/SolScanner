@@ -39,10 +39,11 @@ interface HolderResult {
 }
 
 interface ScanResult {
+  sessionId: string;
+  processedCount: number;
+  totalAccounts: number;
   symbol: string;
-  holdersFound: number;
-  totalHolders?: number;
-  processedAccounts?: number;
+  currentToken: string;
 }
 
 const DEFAULT_TOKENS: Token[] = Object.entries(COMMON_TOKENS).map(([symbol, address]) => ({
@@ -182,27 +183,48 @@ export default function Home() {
     return num.toLocaleString();
   };
 
-  const handleScanComplete = (newResults: HolderResult[], newScanResults: ScanResult[]) => {
+  const handleScanComplete = (results: ScanResult[], scanResults: ScanResult[]) => {
     console.log('Scan complete, received results:', {
-      resultsLength: newResults?.length,
-      scanResultsLength: newScanResults?.length,
-      sampleResult: newResults?.[0],
-      sampleScanResult: newScanResults?.[0]
+      resultsLength: results?.length,
+      scanResultsLength: scanResults?.length,
+      sampleResult: results?.[0],
+      sampleScanResult: scanResults?.[0]
     });
       
-    if (Array.isArray(newResults)) {
-      console.log('Setting results:', newResults);
-      setResults(newResults);
+    if (Array.isArray(results)) {
+      console.log('Setting results:', results);
+      // Convert scan results to holder results format
+      const holderResults: HolderResult[] = results.map(result => ({
+        address: result.currentToken,
+        tokenCount: result.totalAccounts,
+        tokens: [result.symbol],
+        holdings: {
+          [result.symbol]: {
+            percentage: "0",
+            amount: result.processedCount.toString(),
+            decimals: 0,
+            rank: 0
+          }
+        }
+      }));
+      setResults(holderResults);
     } else {
-      console.error('Invalid results format:', newResults);
+      console.error('Invalid results format:', results);
       setResults([]);
     }
   
-    if (Array.isArray(newScanResults)) {
-      console.log('Setting scan results:', newScanResults);
-      setScanResults(newScanResults);
+    if (Array.isArray(scanResults)) {
+      // Convert scan results to the format your UI expects
+      const formattedScanResults = scanResults.map(result => ({
+        symbol: result.symbol,
+        holdersFound: result.processedCount,
+        totalHolders: result.totalAccounts,
+        processedAccounts: result.processedCount
+      }));
+      console.log('Setting scan results:', formattedScanResults);
+      setScanResults(formattedScanResults);
     } else {
-      console.error('Invalid scan results format:', newScanResults);
+      console.error('Invalid scan results format:', scanResults);
       setScanResults([]);
     }
   

@@ -98,10 +98,11 @@ const WhaleWatcher = () => {
 };
 
 
-const handleWatchClick = () => {  // 
+const handleWatchClick = (symbol: string) => {  
+  // You can use the symbol parameter if needed
+  console.log('Watch clicked for:', symbol);
   setShowComingSoon(true);
 };
-
   const handleSearch = (query: string) => {
     setSearchQuery(query);
     const lowercasedQuery = query.toLowerCase();

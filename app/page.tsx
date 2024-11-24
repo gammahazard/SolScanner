@@ -10,6 +10,7 @@ import { ClearButton } from '@/components/ClearButton';
 import { COMMON_TOKENS } from '@/lib/constants';
 import ApiKeyInput from '@/components/ApiKeyInput';
 import { useApiKeyStore } from '@/lib/hooks/useApiKey';
+import { HolderResult, ScanResult } from '@/types/scan';
 
 // Define interfaces
 interface Token {
@@ -20,30 +21,6 @@ interface Token {
   isDefault?: boolean;
 }
 
-interface HoldingData {
-  percentage: string;
-  amount: string;
-  decimals: number;
-  rank: number;
-}
-
-interface Holdings {
-  [symbol: string]: HoldingData;
-}
-
-interface HolderResult {
-  address: string;
-  tokenCount: number;
-  tokens: string[];
-  holdings: Holdings;
-}
-
-interface ScanResult {
-  symbol: string;
-  holdersFound: number;
-  totalHolders?: number;
-  processedAccounts?: number;
-}
 
 const DEFAULT_TOKENS: Token[] = Object.entries(COMMON_TOKENS).map(([symbol, address]) => ({
   symbol,

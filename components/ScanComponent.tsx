@@ -7,13 +7,8 @@ import { useApiKeyStore } from '@/lib/hooks/useApiKey';
 import { API_BASE } from '@/lib/api';
 import { throttle } from 'lodash';
 
-interface ScanResult {
-  sessionId: string;
-  processedCount: number;
-  totalAccounts: number;
-  symbol: string;
-  currentToken: string;
-}
+import { HolderResult, ScanResult, ScanData } from '@/types/scan';
+
 
 interface ScanEvent {
   sessionId?: string;
@@ -23,7 +18,7 @@ interface ScanEvent {
   totalAccounts?: number;
   currentToken?: string;
   symbol?: string;
-  results?: ScanResult[];
+  results?: HolderResult[];
   scanResults?: ScanResult[];
 }
 
@@ -34,11 +29,10 @@ interface ScanComponentProps {
     isSelected: boolean;
     holderLimit: number;
   }[];
-  onScanComplete: (results: HolderResult[], scanResults: ScanResult[]) => void; // Just update the types here
+  onScanComplete: (results: HolderResult[], scanResults: ScanResult[]) => void;
   onStatusChange: (status: string) => void;
   onError?: (error: string) => void;
 }
-
 export const ScanComponent: React.FC<ScanComponentProps> = ({
   selectedTokens,
   onScanComplete,

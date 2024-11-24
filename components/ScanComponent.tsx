@@ -2,12 +2,26 @@
 
 import { useState, useRef } from 'react';
 import StopButton from './StopButton';
-import { ProgressBar } from './ProgressBar'; // Import the ProgressBar component
+import { ProgressBar } from './ProgressBar';
 import { useApiKeyStore } from '@/lib/hooks/useApiKey';
 import { API_BASE } from '@/lib/api';
 import { throttle } from 'lodash';
 
+// Define shared interfaces for scan results and events
+interface TokenHolding {
+  amount: number;
+  percentage: string;
+  rank: number;
+}
+
 interface ScanResult {
+  address: string;
+  tokenCount: number;
+  tokens: string[];
+  holdings: Record<string, TokenHolding>;
+}
+
+interface ScanData {
   sessionId: string;
   processedCount: number;
   totalAccounts: number;
@@ -24,7 +38,7 @@ interface ScanEvent {
   currentToken?: string;
   symbol?: string;
   results?: ScanResult[];
-  scanResults?: ScanResult[];
+  scanResults?: ScanData[];
 }
 
 interface ScanComponentProps {
@@ -34,9 +48,16 @@ interface ScanComponentProps {
     isSelected: boolean;
     holderLimit: number;
   }[];
-  onScanComplete: (results: any[], scanResults: any[]) => void;  // Using any temporarily to fix type issues
+  onScanComplete: (results: ScanResult[], scanResults: ScanData[]) => void;
   onStatusChange: (status: string) => void;
   onError?: (error: string) => void;
+}
+
+interface Progress {
+  current: number;
+  total: number;
+  currentToken: string;
+  status: string;
 }
 
 export const ScanComponent: React.FC<ScanComponentProps> = ({
@@ -48,7 +69,7 @@ export const ScanComponent: React.FC<ScanComponentProps> = ({
   const [isScanning, setIsScanning] = useState(false);
   const [isStopping, setIsStopping] = useState(false);
   const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
-  const [progress, setProgress] = useState({
+  const [progress, setProgress] = useState<Progress>({
     current: 0,
     total: 0,
     currentToken: '',
@@ -59,14 +80,13 @@ export const ScanComponent: React.FC<ScanComponentProps> = ({
 
   const progressRef = useRef(progress);
 
-  // Throttle progress updates for smoother UI
-  const updateProgress = throttle((newProgress: Partial<typeof progress>) => {
+  const updateProgress = throttle((newProgress: Partial<Progress>) => {
     setProgress((prev) => ({
       ...prev,
       ...newProgress,
     }));
     progressRef.current = { ...progressRef.current, ...newProgress };
-  }, 100); // Update at most every 100ms
+  }, 100);
 
   const handleStop = async () => {
     if (!currentSessionId || isStopping) return;
@@ -91,12 +111,11 @@ export const ScanComponent: React.FC<ScanComponentProps> = ({
       onStatusChange('Scan stopped by user');
       setErrorMessage(null);
       setProgress({ current: 0, total: 0, currentToken: '', status: '' });
-    } catch (error: unknown) {
-      const errorMessage =
-        error instanceof Error ? error.message : 'Failed to stop scan';
-      console.error('Error stopping scan:', errorMessage);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to stop scan';
+      console.error('Error stopping scan:', message);
       onStatusChange('Error stopping scan');
-      onError?.(errorMessage);
+      onError?.(message);
     } finally {
       setIsStopping(false);
       setIsScanning(false);
@@ -210,25 +229,23 @@ export const ScanComponent: React.FC<ScanComponentProps> = ({
                   return;
 
                 case 'error':
-                  throw new Error(event.message);
+                  throw new Error(event.message || 'Unknown error occurred');
               }
-            } catch (error: unknown) {
-              const errorMessage =
-                error instanceof Error ? error.message : 'Error processing scan results';
-              console.error('Error processing event:', errorMessage);
-              onError?.(errorMessage);
-              setErrorMessage(errorMessage);
+            } catch (error) {
+              const message = error instanceof Error ? error.message : 'Error processing scan results';
+              console.error('Error processing event:', message);
+              onError?.(message);
+              setErrorMessage(message);
             }
           }
         }
       }
-    } catch (error: unknown) {
-      const errorMessage =
-        error instanceof Error ? error.message : 'Error scanning tokens';
-      console.error('Error scanning tokens:', errorMessage);
-      setErrorMessage(errorMessage);
-      onStatusChange(`Error: ${errorMessage}`);
-      onError?.(errorMessage);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Error scanning tokens';
+      console.error('Error scanning tokens:', message);
+      setErrorMessage(message);
+      onStatusChange(`Error: ${message}`);
+      onError?.(message);
       setProgress({
         current: 0,
         total: 0,
@@ -261,14 +278,14 @@ export const ScanComponent: React.FC<ScanComponentProps> = ({
       </div>
 
       {isScanning && (
-        <>
-          <ProgressBar
-            current={progress.current}
-            total={progress.total}
-            currentToken={progress.currentToken}
-          />
-        </>
+        <ProgressBar
+          current={progress.current}
+          total={progress.total}
+          currentToken={progress.currentToken}
+        />
       )}
     </div>
   );
 };
+
+export type { ScanResult, ScanData };

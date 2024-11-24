@@ -45,6 +45,14 @@ interface ScanResult {
   processedAccounts?: number;
 }
 
+interface ComponentScanResult {
+  sessionId: string;
+  processedCount: number;
+  totalAccounts: number;
+  symbol: string;
+  currentToken: string;
+}
+
 const DEFAULT_TOKENS: Token[] = Object.entries(COMMON_TOKENS).map(([symbol, address]) => ({
   symbol,
   address,
@@ -111,6 +119,7 @@ export default function Home() {
     setCustomTokens(updatedTokens);
     localStorage.setItem('customTokens', JSON.stringify(updatedTokens));
   };
+
   const handleUpdateLimit = (symbol: string, newLimit: number) => {
     // Update default tokens
     const defaultIndex = defaultTokens.findIndex(t => t.symbol === symbol);
@@ -132,7 +141,9 @@ export default function Home() {
       }), {});
       localStorage.setItem('defaultTokenStates', JSON.stringify(states));
       return;
-    } // Update custom tokens
+    }
+    
+    // Update custom tokens
     const customIndex = customTokens.findIndex(t => t.symbol === symbol);
     if (customIndex !== -1) {
       const updatedCustom = [...customTokens];
@@ -144,6 +155,7 @@ export default function Home() {
       localStorage.setItem('customTokens', JSON.stringify(updatedCustom));
     }
   };
+
   const handleToggleToken = (symbol: string) => {
     const defaultIndex = defaultTokens.findIndex((t) => t.symbol === symbol);
     if (defaultIndex !== -1) {
@@ -194,15 +206,15 @@ export default function Home() {
       console.log('Setting results:', scanData);
       // Convert scan data to holder results format
       const holderResults: HolderResult[] = scanData.map(result => ({
-        address: result.currentToken,
-        tokenCount: result.totalAccounts,
-        tokens: [result.symbol],
+        address: result.address || result.currentToken || '', // Fallback to empty string if undefined
+        tokenCount: result.totalAccounts || 0,  // Fallback to 0 if undefined
+        tokens: [result.symbol || ''],  // Fallback to empty string if undefined
         holdings: {
-          [result.symbol]: {
-            percentage: "0",
-            amount: result.processedCount.toString(),
-            decimals: 0,
-            rank: 0
+          [result.symbol || '']: {  // Fallback to empty string if undefined
+            percentage: result.percentage || "0",  // Fallback to "0" if undefined
+            amount: (result.amount || result.processedCount || 0).toString(),  // Fallback to 0 if undefined
+            decimals: result.decimals || 0,  // Fallback to 0 if undefined
+            rank: result.rank || 0  // Fallback to 0 if undefined
           }
         }
       }));
@@ -215,10 +227,10 @@ export default function Home() {
     if (Array.isArray(scanResults)) {
       // Convert scan results to the format your UI expects
       const formattedScanResults: ScanResult[] = scanResults.map(result => ({
-        symbol: result.symbol,
-        holdersFound: result.processedCount,
-        totalHolders: result.totalAccounts,
-        processedAccounts: result.processedCount
+        symbol: result.symbol || '',  // Fallback to empty string if undefined
+        holdersFound: result.processedCount || 0,  // Fallback to 0 if undefined
+        totalHolders: result.totalAccounts || 0,  // Fallback to 0 if undefined
+        processedAccounts: result.processedCount || 0  // Fallback to 0 if undefined
       }));
       console.log('Setting scan results:', formattedScanResults);
       setScanResults(formattedScanResults);
@@ -231,16 +243,13 @@ export default function Home() {
     setError(null);
     setStatus('Scan completed successfully');
   };
-  
-    setIsLoading(false);
-    setError(null);
-    setStatus('Scan completed successfully');
-  };
+
   const handleRemoveToken = (symbol: string) => {
     const updatedTokens = customTokens.filter(token => token.symbol !== symbol);
     setCustomTokens(updatedTokens);
     localStorage.setItem('customTokens', JSON.stringify(updatedTokens));
   };
+
   const handleStatusChange = (newStatus: string) => {
     setStatus(newStatus);
     setIsLoading(newStatus.includes('Scanning') || newStatus.includes('Processing'));
@@ -285,7 +294,7 @@ export default function Home() {
 
         <TokenInput onAddToken={handleAddToken} />
 
-     <TokenGrid
+        <TokenGrid
           defaultTokens={defaultTokens}
           customTokens={customTokens}
           onToggleToken={handleToggleToken}
@@ -360,22 +369,22 @@ export default function Home() {
         {isLoading ? (
           <div className="bg-[#1e1f2e] rounded-xl p-6 mt-8">
             <div className="animate-pulse space-y-4">
-              <div className="h-4 bg-[#2a2b3d] rounded w-3/4"></div>
+              <div className="h-4 bg-[#2a2b3d] rounded w-3/4" />
               <div className="space-y-2">
-                <div className="h-4 bg-[#2a2b3d] rounded"></div>
-                <div className="h-4 bg-[#2a2b3d] rounded w-5/6"></div>
+                <div className="h-4 bg-[#2a2b3d] rounded" />
+                <div className="h-4 bg-[#2a2b3d] rounded w-5/6" />
               </div>
             </div>
           </div>
-        ) : results && results.length > 0 ? (
+        ) : results.length > 0 ? (
           <div className="mt-8">
             <ResultsTable results={results} />
           </div>
-        ) : status.includes('complete') && (
+        ) : status.includes('complete') ? (
           <div className="text-center p-6 bg-[#1e1f2e] rounded-xl mt-8">
             <p className="text-[#9ca3af]">No matching holders found</p>
           </div>
-        )}
+        ) : null}
       </div>
     </main>
   );

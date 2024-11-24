@@ -27,20 +27,12 @@ export function ResultsTable({ results }: ResultsTableProps) {
   // Debug logging
   console.log('ResultsTable received results:', results);
 
-  if (!results?.length) {
-    console.warn('ResultsTable: No results to display', results);
-    return (
-      <div className="text-center p-6 bg-[#1e1f2e] rounded-xl">
-        <p className="text-[#9ca3af]">No results found</p>
-      </div>
-    );
-  }
-
+  // Hooks must be at the top level, called unconditionally
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 50;
-  const totalPages = Math.ceil(results.length / pageSize);
+  const totalPages = Math.ceil((results?.length || 0) / pageSize);
 
-  const currentResults = results.slice(
+  const currentResults = results?.slice(
     (currentPage - 1) * pageSize,
     currentPage * pageSize
   );
@@ -49,6 +41,15 @@ export function ResultsTable({ results }: ResultsTableProps) {
   const getWalletDisplayName = (address: string) => {
     return EXCHANGE_WALLETS[address] || address;
   };
+
+  if (!results?.length) {
+    console.warn('ResultsTable: No results to display', results);
+    return (
+      <div className="text-center p-6 bg-[#1e1f2e] rounded-xl">
+        <p className="text-[#9ca3af]">No results found</p>
+      </div>
+    );
+  }
 
   return (
     <div className="bg-[#1e1f2e] rounded-xl p-6">

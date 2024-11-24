@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { validateApiKey } from '@/lib/api';
 import { useApiKeyStore } from '@/lib/hooks/useApiKey';
-import { AlertCircle, Check, X } from 'lucide-react';
+import { Check, X } from 'lucide-react';
 
 const ApiKeyInput = () => {
   const [apiKey, setApiKey] = useState('');

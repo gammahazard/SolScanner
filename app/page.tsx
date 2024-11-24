@@ -1,101 +1,356 @@
-import Image from "next/image";
+'use client';
+
+import { useState, useEffect } from 'react';
+import { TokenInput } from '@/components/TokenInput';
+import { TokenGrid } from '@/components/TokenGrid';
+import { ScanStatus } from '@/components/ScanStatus';
+import { ResultsTable } from '@/components/ResultsTable';
+import { ScanComponent } from '@/components/ScanComponent';
+import { ClearButton } from '@/components/ClearButton';
+import { COMMON_TOKENS } from '@/lib/constants';
+import ApiKeyInput from '@/components/ApiKeyInput';
+import { useApiKeyStore } from '@/lib/hooks/useApiKey';
+
+// Define interfaces
+interface Token {
+  address: string;
+  symbol: string;
+  isSelected: boolean;
+  holderLimit: number;
+  isDefault?: boolean;
+}
+
+interface HoldingData {
+  percentage: string;
+  amount: string;
+  decimals: number;
+  rank: number;
+}
+
+interface Holdings {
+  [symbol: string]: HoldingData;
+}
+
+interface HolderResult {
+  address: string;
+  tokenCount: number;
+  tokens: string[];
+  holdings: Holdings;
+}
+
+interface ScanResult {
+  symbol: string;
+  holdersFound: number;
+  totalHolders?: number;
+  processedAccounts?: number;
+}
+
+const DEFAULT_TOKENS: Token[] = Object.entries(COMMON_TOKENS).map(([symbol, address]) => ({
+  symbol,
+  address,
+  isSelected: true,
+  holderLimit: 1000,
+  isDefault: true,
+}));
 
 export default function Home() {
-  return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-8 row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-semibold">
-              app/page.tsx
-            </code>
-            .
-          </li>
-          <li>Save and see your changes instantly.</li>
-        </ol>
+  const [status, setStatus] = useState<string>('Ready to scan...');
+  const [results, setResults] = useState<HolderResult[]>([]);
+  const [defaultTokens, setDefaultTokens] = useState<Token[]>(DEFAULT_TOKENS);
+  const [customTokens, setCustomTokens] = useState<Token[]>([]);
+  const [scanResults, setScanResults] = useState<ScanResult[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const { isValid } = useApiKeyStore();
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:min-w-44"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+  // Debug effect
+  useEffect(() => {
+    console.log('State updated:', {
+      resultsPresent: !!results,
+      resultsLength: results?.length,
+      scanResultsLength: scanResults?.length,
+      status
+    });
+  }, [results, scanResults, status]);
+
+  // Load saved tokens from localStorage
+  useEffect(() => {
+    try {
+      const savedCustomTokens = localStorage.getItem('customTokens');
+      if (savedCustomTokens) {
+        setCustomTokens(JSON.parse(savedCustomTokens));
+      }
+
+      const savedDefaultStates = localStorage.getItem('defaultTokenStates');
+      if (savedDefaultStates) {
+        const states = JSON.parse(savedDefaultStates);
+        setDefaultTokens(
+          DEFAULT_TOKENS.map((token) => ({
+            ...token,
+            isSelected: states[token.symbol]?.isSelected ?? token.isSelected,
+            holderLimit: states[token.symbol]?.holderLimit ?? token.holderLimit,
+          }))
+        );
+      }
+    } catch (error) {
+      console.error('Error loading saved token states:', error);
+      localStorage.removeItem('customTokens');
+      localStorage.removeItem('defaultTokenStates');
+    }
+  }, []);
+
+  const handleAddToken = (token: Token) => {
+    if (
+      customTokens.some((t) => t.symbol === token.symbol) ||
+      defaultTokens.some((t) => t.symbol === token.symbol)
+    ) {
+      setStatus(`Token ${token.symbol} already exists`);
+      return;
+    }
+    const updatedTokens = [...customTokens, { ...token, holderLimit: 1000 }];
+    setCustomTokens(updatedTokens);
+    localStorage.setItem('customTokens', JSON.stringify(updatedTokens));
+  };
+  const handleUpdateLimit = (symbol: string, newLimit: number) => {
+    // Update default tokens
+    const defaultIndex = defaultTokens.findIndex(t => t.symbol === symbol);
+    if (defaultIndex !== -1) {
+      const updatedDefaults = [...defaultTokens];
+      updatedDefaults[defaultIndex] = {
+        ...updatedDefaults[defaultIndex],
+        holderLimit: newLimit
+      };
+      setDefaultTokens(updatedDefaults);
+      
+      // Save to localStorage
+      const states = updatedDefaults.reduce((acc, token) => ({
+        ...acc,
+        [token.symbol]: {
+          isSelected: token.isSelected,
+          holderLimit: token.holderLimit,
+        },
+      }), {});
+      localStorage.setItem('defaultTokenStates', JSON.stringify(states));
+      return;
+    } // Update custom tokens
+    const customIndex = customTokens.findIndex(t => t.symbol === symbol);
+    if (customIndex !== -1) {
+      const updatedCustom = [...customTokens];
+      updatedCustom[customIndex] = {
+        ...updatedCustom[customIndex],
+        holderLimit: newLimit
+      };
+      setCustomTokens(updatedCustom);
+      localStorage.setItem('customTokens', JSON.stringify(updatedCustom));
+    }
+  };
+  const handleToggleToken = (symbol: string) => {
+    const defaultIndex = defaultTokens.findIndex((t) => t.symbol === symbol);
+    if (defaultIndex !== -1) {
+      const updatedDefaults = [...defaultTokens];
+      updatedDefaults[defaultIndex] = {
+        ...updatedDefaults[defaultIndex],
+        isSelected: !updatedDefaults[defaultIndex].isSelected,
+      };
+      setDefaultTokens(updatedDefaults);
+      
+      const states = updatedDefaults.reduce((acc, token) => ({
+        ...acc,
+        [token.symbol]: {
+          isSelected: token.isSelected,
+          holderLimit: token.holderLimit,
+        },
+      }), {});
+      localStorage.setItem('defaultTokenStates', JSON.stringify(states));
+      return;
+    }
+
+    const customIndex = customTokens.findIndex((t) => t.symbol === symbol);
+    if (customIndex !== -1) {
+      const updatedCustom = [...customTokens];
+      updatedCustom[customIndex] = {
+        ...updatedCustom[customIndex],
+        isSelected: !updatedCustom[customIndex].isSelected,
+      };
+      setCustomTokens(updatedCustom);
+      localStorage.setItem('customTokens', JSON.stringify(updatedCustom));
+    }
+  };
+
+  const formatNumber = (num: number | undefined): string => {
+    if (typeof num === 'undefined') return '0';
+    return num.toLocaleString();
+  };
+
+  const handleScanComplete = (newResults: HolderResult[], newScanResults: ScanResult[]) => {
+    console.log('Scan complete, received results:', {
+      resultsLength: newResults?.length,
+      scanResultsLength: newScanResults?.length,
+      sampleResult: newResults?.[0],
+      sampleScanResult: newScanResults?.[0]
+    });
+      
+    if (Array.isArray(newResults)) {
+      console.log('Setting results:', newResults);
+      setResults(newResults);
+    } else {
+      console.error('Invalid results format:', newResults);
+      setResults([]);
+    }
+  
+    if (Array.isArray(newScanResults)) {
+      console.log('Setting scan results:', newScanResults);
+      setScanResults(newScanResults);
+    } else {
+      console.error('Invalid scan results format:', newScanResults);
+      setScanResults([]);
+    }
+  
+    setIsLoading(false);
+    setError(null);
+    setStatus('Scan completed successfully');
+  };
+  const handleRemoveToken = (symbol: string) => {
+    const updatedTokens = customTokens.filter(token => token.symbol !== symbol);
+    setCustomTokens(updatedTokens);
+    localStorage.setItem('customTokens', JSON.stringify(updatedTokens));
+  };
+  const handleStatusChange = (newStatus: string) => {
+    setStatus(newStatus);
+    setIsLoading(newStatus.includes('Scanning') || newStatus.includes('Processing'));
+  };
+
+  const handleClearResults = () => {
+    setResults([]);
+    setScanResults([]);
+    setStatus('Ready to scan...');
+    setError(null);
+    setIsLoading(false);
+  };
+
+  const handleError = (errorMessage: string) => {
+    setError(errorMessage);
+    setIsLoading(false);
+  };
+
+  const selectedTokens = [
+    ...defaultTokens.filter((t) => t.isSelected),
+    ...customTokens.filter((t) => t.isSelected),
+  ];
+
+  return (
+    <main className="min-h-screen bg-[#13141f] text-white p-6">
+      <div className="max-w-7xl mx-auto">
+        <h1 className="text-4xl font-bold text-center text-[#9945FF] mb-4">
+          Solana Token Holder Scanner
+        </h1>
+
+        <p className="text-[#9ca3af] text-lg text-center mb-8">
+          Analyzes top holders across multiple tokens to find common wallets
+        </p>
+
+        <ApiKeyInput />
+
+        {!isValid && (
+          <div className="bg-yellow-500/10 border border-yellow-500/20 text-yellow-500 p-4 rounded-lg mb-6">
+            Please enter a valid API key to use the scanner
+          </div>
+        )}
+
+        <TokenInput onAddToken={handleAddToken} />
+
+     <TokenGrid
+          defaultTokens={defaultTokens}
+          customTokens={customTokens}
+          onToggleToken={handleToggleToken}
+          onUpdateLimit={handleUpdateLimit}
+          onRemoveToken={handleRemoveToken}
+        />
+
+        <div className="mb-8">
+          <ScanComponent
+            selectedTokens={selectedTokens}
+            onScanComplete={handleScanComplete}
+            onStatusChange={handleStatusChange}
+            onError={handleError}
+          />
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-6 flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
-    </div>
+
+        {error && (
+          <div className="bg-red-500 text-white p-4 rounded-lg mb-4">
+            <div className="flex items-center justify-between">
+              <span>{error}</span>
+              <button 
+                onClick={() => setError(null)}
+                className="text-white hover:text-gray-200"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+          </div>
+        )}
+
+        {(results.length > 0 || scanResults.length > 0) && (
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-xl font-semibold text-[#9945FF]">
+              Scan Results
+            </h2>
+            <ClearButton onClear={handleClearResults} />
+          </div>
+        )}
+
+        {scanResults.length > 0 && (
+          <div className="bg-[#1e1f2e] rounded-xl p-4 mb-8">
+            <div className="flex justify-between items-center mb-2">
+              <h4 className="text-[#9945FF]">Completed Scans:</h4>
+            </div>
+            <div className="space-y-2">
+              {scanResults.map((result, index) => (
+                <div
+                  key={`${result.symbol}-${index}`}
+                  className="flex justify-between items-center bg-[#2a2b3d] p-2 rounded"
+                >
+                  <span className="text-white font-mono">{result.symbol}</span>
+                  <div className="flex items-center gap-4">
+                    <span className="text-[#10b981]">
+                      {formatNumber(result.totalHolders)} total holders
+                    </span>
+                    {result.processedAccounts !== result.totalHolders && (
+                      <span className="text-yellow-400 text-sm">
+                        ({formatNumber(result.processedAccounts)} processed)
+                      </span>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {status && <ScanStatus status={status} />}
+
+        {isLoading ? (
+          <div className="bg-[#1e1f2e] rounded-xl p-6 mt-8">
+            <div className="animate-pulse space-y-4">
+              <div className="h-4 bg-[#2a2b3d] rounded w-3/4"></div>
+              <div className="space-y-2">
+                <div className="h-4 bg-[#2a2b3d] rounded"></div>
+                <div className="h-4 bg-[#2a2b3d] rounded w-5/6"></div>
+              </div>
+            </div>
+          </div>
+        ) : results && results.length > 0 ? (
+          <div className="mt-8">
+            <ResultsTable results={results} />
+          </div>
+        ) : status.includes('complete') && (
+          <div className="text-center p-6 bg-[#1e1f2e] rounded-xl mt-8">
+            <p className="text-[#9ca3af]">No matching holders found</p>
+          </div>
+        )}
+      </div>
+    </main>
   );
 }

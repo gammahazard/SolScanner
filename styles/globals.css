@@ -1,0 +1,32 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: #13141f;
+  --card-bg: #1e1f2e;
+  --button-bg: #2a2b3d;
+  --primary: #9945FF;
+  --text-primary: #fff;
+  --text-secondary: #9ca3af;
+}
+
+body {
+  background: var(--background);
+  color: var(--text-primary);
+}
+
+/* Additional utility classes if needed */
+.token-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 10px;
+}
+
+.token-holder-row:hover {
+  background: var(--button-bg);
+}
+
+.significant-holder {
+  background: rgba(153, 69, 255, 0.1);
+}

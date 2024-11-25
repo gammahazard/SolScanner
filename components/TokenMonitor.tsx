@@ -31,7 +31,7 @@ const TokenMonitor: React.FC<TokenMonitorProps> = ({ symbol, walletAddress, onCl
   };
 
   useEffect(() => {
-    let monitorId: string | null = null; // Track monitor ID
+    const monitorId: string | null = null; // Track monitor ID
     let cleanupCalled = false;
 
     const setupMonitoring = async () => {

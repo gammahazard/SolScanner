@@ -2,9 +2,10 @@
 import React, { useState } from 'react';
 import { Search, Bell } from 'lucide-react';
 import { useApiKeyStore } from '@/lib/hooks/useApiKey';
-import ComingSoon from './ComingSoon';
 import { API_BASE } from '@/lib/api';  
 import Image from 'next/image';
+import TokenMonitor from './TokenMonitor';
+
 interface TokenContent {
   symbol: string;
   name: string;
@@ -35,7 +36,7 @@ const WhaleWatcher = () => {
   const [error, setError] = useState('');
   const [sortOption, setSortOption] = useState<string>('');
   const [searchQuery, setSearchQuery] = useState('');
-  const [showComingSoon, setShowComingSoon] = useState(false);
+  const [selectedToken, setSelectedToken] = useState<{symbol: string, address: string} | null>(null);
   const { isValid, apiKey } = useApiKeyStore();
 
   const fetchWalletAssets = async () => {
@@ -51,7 +52,7 @@ const WhaleWatcher = () => {
     setFilteredAssets([]);
   
     try {
-      const response = await fetch(`${API_BASE}/whale/assets`, {  // Use API_BASE
+      const response = await fetch(`${API_BASE}/whale/assets`, {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',
@@ -82,7 +83,7 @@ const WhaleWatcher = () => {
 
   const handleSort = (option: string) => {
     setSortOption(option);
-    const sortedAssets = [...filteredAssets];  // 
+    const sortedAssets = [...filteredAssets];
 
     if (option === 'highest-value') {
       sortedAssets.sort((a, b) => b.priceInfo.totalValue - a.priceInfo.totalValue);
@@ -95,14 +96,8 @@ const WhaleWatcher = () => {
     }
 
     setFilteredAssets(sortedAssets);
-};
+  };
 
-
-const handleWatchClick = (symbol: string) => {  
-  // You can use the symbol parameter if needed
-  console.log('Watch clicked for:', symbol);
-  setShowComingSoon(true);
-};
   const handleSearch = (query: string) => {
     setSearchQuery(query);
     const lowercasedQuery = query.toLowerCase();
@@ -112,15 +107,15 @@ const handleWatchClick = (symbol: string) => {
     setFilteredAssets(filtered);
   };
 
-
-
   return (
     <div className="space-y-4">
-      <ComingSoon 
-        isVisible={showComingSoon}
-        message="Live token event notifications"
-        onClose={() => setShowComingSoon(false)}
-      />
+      {selectedToken && (
+        <TokenMonitor
+          symbol={selectedToken.symbol}
+          walletAddress={address}
+          onClose={() => setSelectedToken(null)}
+        />
+      )}
 
       {/* Search Section */}
       <div className="bg-[#1e1f2e] rounded-xl p-6">
@@ -191,29 +186,26 @@ const handleWatchClick = (symbol: string) => {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {filteredAssets.map((token) => (
           <div key={token.id} className="relative p-6 bg-[#2a2b3d] rounded-lg">
-            {/* Coming Soon Bell Icon */}
             <button
-              onClick={() => handleWatchClick(token.content.symbol)}
+              onClick={() => setSelectedToken({ symbol: token.content.symbol, address })}
               className="absolute top-3 left-3 p-1.5 rounded-full bg-[#9945FF]/50 hover:bg-[#7d37d6] group transition-colors"
             >
               <Bell className="w-4 h-4 text-white" />
               <span className="absolute left-full ml-2 whitespace-nowrap bg-[#2a2b3d] text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity">
-                Coming Soon!
+                Monitor Token
               </span>
             </button>
 
-            {/* Token Image */}
             {token.content.image && (
-  <Image
-    src={token.content.image}
-    alt={`${token.content.symbol} Token`}
-    width={48}  // 12 * 4 (w-12)
-    height={48}
-    className="absolute top-3 right-3 rounded-full border border-white/20"
-  />
-)}
+              <Image
+                src={token.content.image}
+                alt={`${token.content.symbol} Token`}
+                width={48}
+                height={48}
+                className="absolute top-3 right-3 rounded-full border border-white/20"
+              />
+            )}
 
-            {/* Token Details */}
             <div className="mt-8">
               <h4 className="text-center text-2xl text-[#9945FF] font-bold">
                 {token.content.symbol}

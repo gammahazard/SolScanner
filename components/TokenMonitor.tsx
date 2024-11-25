@@ -11,16 +11,18 @@ interface TokenMonitorProps {
   onClose: () => void;
 }
 
+interface TokenTransfer {
+  from: string;
+  to: string;
+  token: string;
+  amount: number;
+}
+
 interface TokenEvent {
   type: string;
   timestamp: number;
   message?: string;
-  tokenTransfers?: Array<{
-    from: string;
-    to: string;
-    token: string;
-    amount: number;
-  }>;
+  tokenTransfers?: TokenTransfer[];
 }
 
 const TokenMonitor: React.FC<TokenMonitorProps> = ({ symbol, walletAddress, onClose }) => {
@@ -31,7 +33,6 @@ const TokenMonitor: React.FC<TokenMonitorProps> = ({ symbol, walletAddress, onCl
   const [notification, setNotification] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
   const [isSettingUp, setIsSettingUp] = useState(false);
 
-  // Helper to show notifications
   const showNotification = (message: string, type: 'success' | 'error' = 'success') => {
     setNotification({ message, type });
     setTimeout(() => setNotification(null), 3000);
@@ -42,13 +43,12 @@ const TokenMonitor: React.FC<TokenMonitorProps> = ({ symbol, walletAddress, onCl
     let cleanupCalled = false;
 
     const setupMonitoring = async () => {
-      if (isSettingUp) return; // Prevent duplicate setups
+      if (isSettingUp) return;
       setIsSettingUp(true);
 
       try {
         console.log('Setting up monitor for:', { symbol, walletAddress });
 
-        // Create or retrieve token monitor from backend
         const response = await fetch(`${API_BASE}/monitor/token-events`, {
           method: 'POST',
           headers: {
@@ -67,11 +67,9 @@ const TokenMonitor: React.FC<TokenMonitorProps> = ({ symbol, walletAddress, onCl
 
         monitorId = data.data.monitorId;
 
-        // WebSocket setup
-        const wsUrl = `wss://api.allcaps.lol/ws`; // Replace with your WebSocket endpoint
+        const wsUrl = `wss://api.allcaps.lol/ws`;
         console.log('Connecting to WebSocket:', wsUrl);
 
-        // Close any existing connection
         if (wsConnection) {
           wsConnection.close();
         }
@@ -100,7 +98,6 @@ const TokenMonitor: React.FC<TokenMonitorProps> = ({ symbol, walletAddress, onCl
               return;
             }
 
-            // Add the new event to the list
             setEvents((prev) =>
               [
                 {
@@ -147,7 +144,6 @@ const TokenMonitor: React.FC<TokenMonitorProps> = ({ symbol, walletAddress, onCl
 
     setupMonitoring();
 
-    // Cleanup function
     return () => {
       cleanupCalled = true;
       setIsSettingUp(false);
@@ -171,12 +167,11 @@ const TokenMonitor: React.FC<TokenMonitorProps> = ({ symbol, walletAddress, onCl
         setWsConnection(null);
       }
     };
-  }, [walletAddress, symbol, apiKey]); // Dependencies
+  }, [walletAddress, symbol, apiKey]);
 
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
       <div className="bg-[#1e1f2e] p-6 rounded-xl max-w-md w-full relative">
-        {/* Notification */}
         {notification && (
           <div
             className={`absolute top-0 left-1/2 transform -translate-x-1/2 -translate-y-full mb-4 p-3 rounded-lg shadow-lg ${
@@ -219,7 +214,7 @@ const TokenMonitor: React.FC<TokenMonitorProps> = ({ symbol, walletAddress, onCl
                       </span>
                     </div>
                     {event.message && <p className="text-white/60 text-xs mt-1">{event.message}</p>}
-                    {event.tokenTransfers?.length > 0 && (
+                    {event.tokenTransfers && event.tokenTransfers.length > 0 && (
                       <ul className="text-white/70 text-xs mt-1">
                         {event.tokenTransfers.map((transfer, i) => (
                           <li key={i}>

@@ -37,10 +37,10 @@ const TokenMonitor: React.FC<TokenMonitorProps> = ({ symbol, walletAddress, onCl
     const setupMonitoring = async () => {
       if (isSettingUp) return; // Prevent duplicate setups
       setIsSettingUp(true);
-
+    
       try {
         console.log('Setting up monitor for:', { symbol, walletAddress });
-
+    
         // Create or retrieve token monitor from backend
         const response = await fetch(`${API_BASE}/monitor/token-events`, {
           method: 'POST',
@@ -50,50 +50,49 @@ const TokenMonitor: React.FC<TokenMonitorProps> = ({ symbol, walletAddress, onCl
           },
           body: JSON.stringify({ address: walletAddress, symbol }),
         });
-
+    
         const data = await response.json();
         console.log('Monitor setup response:', data);
-
+    
         if (!data.success) {
           throw new Error(data.error || 'Failed to setup monitor');
         }
-
-        monitorId = data.data.monitorId;
-
+    
+        const monitorId = data.data.monitorId;
+    
         // WebSocket setup
-        const wsProtocol = window.location.protocol === 'wss';
-        const wsUrl = `${wsProtocol}//api.allcaps.lol/ws`; // Always point to your WebSocket endpoint
+        const wsUrl = `wss://api.allcaps.lol/ws`; // Always point to your WebSocket endpoint
         console.log('Connecting to WebSocket:', wsUrl);
-
+    
         // Close any existing connection
         if (wsConnection) {
           wsConnection.close();
         }
-
+    
         const ws = new WebSocket(wsUrl);
-
+    
         ws.onopen = () => {
           console.log('WebSocket connected, subscribing to:', monitorId);
           ws.send(JSON.stringify({ type: 'subscribe', monitorId }));
           setIsMonitoring(true);
           showNotification('WebSocket connection established');
         };
-
+    
         ws.onmessage = (event) => {
           console.log('Received WebSocket message:', event.data);
           try {
             const tokenEvent = JSON.parse(event.data);
-
+    
             if (tokenEvent.type === 'subscribed') {
               showNotification('Successfully subscribed to token monitor');
               return;
             }
-
+    
             if (tokenEvent.type === 'connection_established') {
               console.log('Connection established message received');
               return;
             }
-
+    
             setEvents((prev) =>
               [
                 {
@@ -104,19 +103,19 @@ const TokenMonitor: React.FC<TokenMonitorProps> = ({ symbol, walletAddress, onCl
                 ...prev,
               ].slice(0, 50)
             );
-
+    
             showNotification(`New ${tokenEvent.type.toLowerCase()} event detected`);
           } catch (error) {
             console.error('Error processing WebSocket message:', error);
           }
         };
-
+    
         ws.onerror = (error) => {
           console.error('WebSocket error:', error);
           showNotification('Failed to establish WebSocket connection', 'error');
           setIsMonitoring(false);
         };
-
+    
         ws.onclose = (event) => {
           console.log('WebSocket closed:', event);
           setIsMonitoring(false);
@@ -124,7 +123,7 @@ const TokenMonitor: React.FC<TokenMonitorProps> = ({ symbol, walletAddress, onCl
             showNotification('WebSocket connection lost', 'error');
           }
         };
-
+    
         setWsConnection(ws);
       } catch (error) {
         console.error('Error setting up token monitoring:', error);
